@@ -33,6 +33,20 @@ Diputuskan lewat red-chan dan dicatat di `docs/keputusan-produk.md`: dataset kor
 
 Kode hanya ditulis dari rancangan yang sudah berstatus `siap dikerjakan`.
 
+## Kontrak berkas
+
+Notebook terhubung hanya lewat berkas di folder berikut, tanpa import antar-notebook. Entitas dan aturannya dari rancangan 001a. Nama berkas, kolom, dan format ditetapkan di rancangan 002; notebook penulis dan pembaca dicantumkan saat notebook dibuat.
+
+| Entitas | Folder | Ditulis oleh | Dibaca oleh | Aturan |
+|---|---|---|---|---|
+| Dataset mentah (korpus, query, qrels) | `data/raw/` | Arya, diunduh manual | Penyiapan data | Tidak pernah diubah |
+| Dokumen, Query (beserta split), Penilaian relevansi | `data/processed/` | Penyiapan data (K2) | Pembuat embedding, Penilai | Split val/test 50:50 seed 42, ditetapkan sekali dan dikunci hash; tidak ditimpa tanpa pemeriksaan hash |
+| Set embedding, Vektor dokumen, Vektor query | `data/embeddings/<embedding_id>/` | Pembuat embedding (K1) | Exact, HNSW, IVF, LSH | Konfigurasi berbeda → embedding_id baru; vektor lama tidak ditimpa; urutan baris = urutan id yang disimpan bersama |
+| Tetangga exact | `data/embeddings/<embedding_id>/` | Exact search (K3) | Penilai di HNSW, IVF, LSH | Hanya sah untuk embedding_id yang sama; exact dijalankan sebelum ANN |
+| Run, Lingkungan | `outputs/tuning/` | Exact, HNSW, IVF, LSH | Tabel hasil (K4) | Run hanya ditambah, tidak pernah ditimpa; lingkungan dicatat per sesi |
+
+`data/` dan `outputs/` di-gitignore; susunan foldernya dijaga dengan `.gitkeep`.
+
 ## Agent dan skill di repo ini
 
 Agent dan skill disimpan di repo supaya ikut ter-commit:
