@@ -1,0 +1,5 @@
+# Python 3.10–3.13; versi pasti belum diputuskan (H9, rancangan 002a)
+# torch dan numpy belum dikunci; dikunci dari pip freeze instance Vast.ai (H13)
+sentence-transformers==6.1.0
+faiss-cpu==1.15.1
+datasets==5.0.1

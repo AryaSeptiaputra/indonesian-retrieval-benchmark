@@ -19,7 +19,36 @@ Bagian ini tidak boleh diganti tanpa persetujuan Arya.
 
 ### Belum diputuskan
 
-Diputuskan lewat red-chan dan dicatat di `docs/keputusan-produk.md`: dataset korpus dan query, metrik kualitas dan efisiensi, library index, parameter tiap algoritma, hardware, dan bentuk keluaran benchmark.
+Keputusan dibuat lewat red-chan dan dicatat di `docs/keputusan-produk.md`; yang berlaku adalah dokumen itu dan file `docs/rancangan/<nomor>a_...`.
+
+Sudah diputuskan di rancangan 002:
+
+| Hal | Ringkasan | Dokumen |
+|---|---|---|
+| Dataset | `miracl/miracl-corpus` id (1.446.315 passage); query dan qrels `miracl/miracl` id dev (960 query, 9.668 penilaian) | `docs/dataset.md` |
+| Library | sentence-transformers 6.1.0 (hanya memuat), encode loop PyTorch, datasets 5.0.1, faiss-cpu 1.15.1 | `docs/tech-stack.md` |
+| Metrik | 12 metrik, k = 5, latensi p50, aturan slot −1 | `docs/metrik-evaluasi.md` |
+| Hardware dan tempat menjalankan | Vast.ai Linux, RTX 3090 24 GB, RAM ≥ 32 GB, CPU ≥ 24, disk 50 GB; thread = min(jatah cgroup, 24) | `docs/lingkungan-eksekusi.md` |
+| Pencatatan resource | Otomatis oleh kode ke Lingkungan, manual oleh Arya di `README.md` | `docs/lingkungan-eksekusi.md` |
+
+Masih belum diputuskan:
+
+| Kode | Hal |
+|---|---|
+| H1 | Teks dokumen yang di-embed (title + text atau text saja) |
+| H2 | Parameter tiap algoritma dan ada/tidaknya sapuan di val |
+| H3 | Tanda berhasil benchmark dan aturan memilih konfigurasi yang dikunci dari val |
+| H4 | Cara mengukur QPS dan latensi p50 |
+| H5 | Definisi metrik #12 (ukuran index / memori) |
+| H6 | Penanganan jarak exact = 0 pada #8 Relative distance error |
+| H7 | Presisi encode, ukuran batch, pemeriksaan kesamaan dengan `model.encode` |
+| H8 | Format berkas fisik tabel, vektor, dan metadata |
+| H9 | Versi Python pasti (3.10–3.13) |
+| H10 | Tempat penyimpanan di luar Vast.ai |
+| H11 | Field yang membentuk env_id |
+| H12 | Perilaku pencatatan resource di luar Linux |
+| H13 | Versi torch dan numpy (dikunci dari `pip freeze` instance Vast.ai) |
+| — | Lisensi model, tujuan keluaran (skripsi, paper, atau laporan internal), grafik laporan |
 
 ## Dokumen rancangan
 
