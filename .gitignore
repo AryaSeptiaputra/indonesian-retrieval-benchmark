@@ -1,0 +1,14 @@
+# Pengaturan Claude Code milik mesin lokal
+.claude/settings.local.json
+
+# Berkas rahasia
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
