@@ -1,6 +1,6 @@
 # Lingkungan Eksekusi
 
-Ringkasan keputusan K6 dan K8 dari rancangan 002a. Kalau isi dokumen ini berbeda dengan `docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md` atau `docs/keputusan-produk.md`, kedua dokumen itu yang berlaku.
+Ringkasan keputusan K6 dan K8 dari rancangan 002a, 003a, dan 004a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku.
 
 ## Tempat menjalankan (K6)
 
@@ -50,12 +50,36 @@ Dicatat otomatis oleh kode ke entitas Lingkungan:
 
 Dicatat manual oleh Arya di `README.md` bagian "Lingkungan Vast.ai", dari dashboard Vast.ai: ID penawaran/host, harga per jam, reliability, lokasi, status verified.
 
-Lingkungan memakai env_id (hash isi). Angka efisiensi hanya dibandingkan antar-run dengan env_id sama.
+## env_id (K8, 004a)
+
+env_id dibentuk dari hash semua field statis ditambah hostname instance; field dinamis dicatat tetapi tidak masuk hash. Angka efisiensi hanya dibandingkan antar-run dengan env_id sama.
+
+| Jenis | Field |
+|---|---|
+| Statis, masuk hash | Model GPU, VRAM total, driver/CUDA, model CPU, flag AVX2/AVX-512, jatah vCPU, total vCPU mesin, jatah RAM, total disk, thread FAISS, thread torch, versi Python dan library, revision model dan dataset, hostname instance |
+| Dinamis, hanya dicatat | Puncak RAM, puncak VRAM, sisa disk, timestamp |
+
+Kartu K8 004a, apa adanya (menggantikan kartu K8 003a):
+
+```
+K8 · Environment identity — Umum  ✎ H15
+env_id       hash( model GPU, VRAM total, driver/CUDA, model CPU,
+                   flag AVX2/AVX-512, jatah vCPU, total vCPU mesin,
+                   jatah RAM, total disk, thread FAISS, thread torch,
+                   versi Python dan library, revision model dan dataset,
+                   hostname instance )
+Dicatat saja Puncak RAM, puncak VRAM, sisa disk, timestamp (tidak masuk hash)
+Akibat       Perubahan field statis apa pun (termasuk revision) antara sapuan
+             val dan benchmark final → env_id baru → notebook final berhenti
+```
+
+Akibatnya sapuan val dan benchmark final test wajib dijalankan di instance yang sama dan dengan revision model dan dataset yang sama; perubahan field statis apa pun menghasilkan env_id baru dan notebook final berhenti.
+
+Ditolak: env_id hanya dari field H11 + hostname (Arya memilih semua field statis masuk hash, 004a).
 
 ## Belum diputuskan
 
-| Kode | Hal |
-|---|---|
-| H10 | Tempat penyimpanan di luar Vast.ai |
-| H11 | Field yang membentuk env_id. Lingkungan memuat nilai yang berubah di setiap notebook (puncak VRAM dan RAM, sisa disk, timestamp sesi), sehingga hash seluruh isi tidak pernah sama antar-run dan aturan "efisiensi hanya dibandingkan antar-run dengan env_id sama" tidak bisa terpenuhi |
-| H12 | Perilaku kode pencatatan resource di luar Linux (pembacaan cgroup hanya ada di Linux; laptop Arya Windows) |
+| Kode | Hal | Dijawab paling lambat |
+|---|---|---|
+| H10 | Tempat penyimpanan di luar Vast.ai | Sebelum instance pertama dihapus |
+| H12 | Perilaku kode pencatatan resource di luar Linux (pembacaan cgroup hanya ada di Linux; laptop Arya Windows) | Hanya kalau notebook dijalankan lokal |

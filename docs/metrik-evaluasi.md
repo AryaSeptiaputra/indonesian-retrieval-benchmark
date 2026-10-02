@@ -1,6 +1,6 @@
 # Metrik Evaluasi
 
-Ringkasan keputusan K7 dan K4 dari rancangan 002a. Kalau isi dokumen ini berbeda dengan `docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md` atau `docs/keputusan-produk.md`, kedua dokumen itu yang berlaku. Dokumen ini bukan `docs/rencana-evaluasi.md` (milik red-chan).
+Ringkasan keputusan K7, K4, K11, dan D4 dari rancangan 002a, 003a, dan 004a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku. Dokumen ini bukan `docs/rencana-evaluasi.md` (milik red-chan).
 
 ## Ringkasan
 
@@ -75,7 +75,7 @@ Penalti 2 hanya sah karena vektor wajib bernorma 1 (aturan integritas Vektor dok
 
 ## K4 · Catatan run
 
-Setiap run menambah satu catatan yang tidak pernah ditimpa. Tabel hasil val dan hasil benchmark final disusun dari catatan run.
+Setiap run menambah satu baris yang tidak pernah ditimpa. Satu konfigurasi sapuan = satu run (16 run di val, lihat K10 di `docs/tech-stack.md`). Tabel hasil val dan hasil benchmark final disusun dari catatan run. Format: baris CSV yang hanya ditambah (K9).
 
 | Kolom | Isi |
 |---|---|
@@ -84,24 +84,47 @@ Setiap run menambah satu catatan yang tidak pernah ditimpa. Tabel hasil val dan 
 | embedding_id | Rujukan Set embedding |
 | env_id | Rujukan Lingkungan |
 | algorithm | flat, hnsw, ivf, atau lsh |
-| params | Parameter algoritma |
+| params | Parameter build dan search; IVF juga jumlah sampel latih dan seed k-means; LSH juga seed rotasi (004a) |
 | split | val atau test |
 | k | 5 |
 | thread FAISS, thread torch | Jumlah thread yang diset (K6) |
 | 12 metrik K7 | Nilai rata-rata atas query |
 | jumlah query dengan hasil < 5 | Kolom diagnostik |
 
-Format berkas fisik catatan run belum diputuskan (H8, lihat `docs/dataset.md`).
+## K11 · Memilih konfigurasi untuk test
+
+Per algoritma, dari run val: konfigurasi dengan QPS tertinggi di antara yang k-NN Recall@5 ≥ 0,95; kalau tidak ada yang mencapai, konfigurasi dengan k-NN Recall@5 tertinggi. Hasilnya ditulis ke Kunci konfigurasi (JSON, cap waktu + hash isi) sebelum test dibuka. Kartu K11 003a, apa adanya:
+
+```
+K11 · Configuration selection — Umum  ★ H3
+Rumus        c*(a) = argmax { QPS(c) : c ∈ Cₐ, R(c) ≥ 0,95 }  kalau tidak kosong
+             c*(a) = argmax { R(c)   : c ∈ Cₐ }                kalau kosong
+             Cₐ = konfigurasi algoritma a di val; R = k-NN Recall@5 di val
+Kunci        Hasil ditulis ke Kunci konfigurasi (JSON, cap waktu + hash isi)
+             sebelum test dibuka; exact = satu-satunya konfigurasinya
+Bergantung   H4 (cara ukur QPS) dijawab sebelum notebook search pertama
+```
 
 ## Benchmark final
 
-Pemilihan konfigurasi hanya di split val. Konfigurasi dikunci ke berkas (cap waktu dan hash isi); notebook benchmark final — notebook terakhir — berhenti kalau hash atau Lingkungan tidak cocok, lalu membuka split test sekali (K2).
+Pemilihan konfigurasi hanya di split val. Notebook benchmark final — notebook terakhir — berhenti kalau hash Kunci konfigurasi atau env_id tidak cocok dengan run val, lalu membuka split test sekali untuk keempat konfigurasi terkunci dan menjalankan ulang exact (K2).
+
+## D4 · Tanda berhasil benchmark
+
+Kartu D4 003a, apa adanya:
+
+```
+D4 · Benchmark success criteria — ✎ H3
+1            12 metrik lengkap untuk keempat algoritma di split test
+2            Exact: k-NN Recall@5 = 1 dan Relative distance error = 0
+             (bergantung H6 untuk kasus jarak exact = 0)
+3            Run ulang exact di notebook final yang sama → nDCG@5 identik
+```
 
 ## Belum diputuskan
 
-| Kode | Hal |
-|---|---|
-| H3 | Tanda berhasil benchmark dan aturan memilih konfigurasi yang dikunci dari val |
-| H4 | Cara mengukur QPS dan latensi p50: query satu per satu atau batch, pemanasan, alat ukur waktu |
-| H5 | Definisi metrik #12: byte hasil serialisasi index atau memori proses |
-| H6 | Penanganan dᴱˣᵢ = 0 pada #8 Relative distance error (pembagian dengan nol) |
+| Kode | Hal | Dijawab paling lambat |
+|---|---|---|
+| H4 | Cara mengukur QPS dan latensi p50: query satu per satu atau batch, pemanasan, alat ukur waktu | Sebelum notebook search pertama |
+| H5 | Definisi metrik #12: byte hasil serialisasi index atau memori proses | Sebelum notebook search pertama |
+| H6 | Penanganan dᴱˣᵢ = 0 pada #8 Relative distance error (pembagian dengan nol) | Saat menulis penilai |

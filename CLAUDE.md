@@ -21,34 +21,35 @@ Bagian ini tidak boleh diganti tanpa persetujuan Arya.
 
 Keputusan dibuat lewat red-chan dan dicatat di `docs/keputusan-produk.md`; yang berlaku adalah dokumen itu dan file `docs/rancangan/<nomor>a_...`.
 
-Sudah diputuskan di rancangan 002:
+Sudah diputuskan:
 
-| Hal | Ringkasan | Dokumen |
-|---|---|---|
-| Dataset | `miracl/miracl-corpus` id (1.446.315 passage); query dan qrels `miracl/miracl` id dev (960 query, 9.668 penilaian) | `docs/dataset.md` |
-| Library | sentence-transformers 6.1.0 (hanya memuat), encode loop PyTorch, datasets 5.0.1, faiss-cpu 1.15.1 | `docs/tech-stack.md` |
-| Metrik | 12 metrik, k = 5, latensi p50, aturan slot −1 | `docs/metrik-evaluasi.md` |
-| Hardware dan tempat menjalankan | Vast.ai Linux, RTX 3090 24 GB, RAM ≥ 32 GB, CPU ≥ 24, disk 50 GB; thread = min(jatah cgroup, 24) | `docs/lingkungan-eksekusi.md` |
-| Pencatatan resource | Otomatis oleh kode ke Lingkungan, manual oleh Arya di `README.md` | `docs/lingkungan-eksekusi.md` |
+| Hal | Ringkasan | Rancangan | Dokumen |
+|---|---|---|---|
+| Pengguna | Portofolio pribadi Arya tentang kemampuan mengimplementasikan retrieval | 003 | `docs/keputusan-produk.md` |
+| Dataset | `miracl/miracl-corpus` id (1.446.315 passage); query dan qrels `miracl/miracl` id dev (960 query, 9.668 penilaian) | 002 | `docs/dataset.md` |
+| Library | sentence-transformers 6.1.0 (hanya memuat), encode loop PyTorch, datasets 5.0.1, faiss-cpu 1.15.1 | 002 | `docs/tech-stack.md` |
+| Encode | Dokumen `title + " " + text`, fp32, batch mulai 1024, pemeriksaan 100 sampel vs `model.encode` (1e-5) | 003 | `docs/tech-stack.md` |
+| Parameter dan sapuan | HNSW M 32, efConstruction 200, efSearch ×5; IVF nlist 4096, nprobe ×7; LSH nbits 768/1536/3072; 16 run val | 003 | `docs/tech-stack.md` |
+| Metrik | 12 metrik, k = 5, latensi p50, aturan slot −1 | 002 | `docs/metrik-evaluasi.md` |
+| Pemilihan konfigurasi dan tanda berhasil | QPS tertinggi dengan k-NN Recall@5 ≥ 0,95 (kalau tidak ada, recall tertinggi); D4: 12 metrik lengkap di test, exact #7 = 1 dan #8 = 0, exact ulang identik | 003 | `docs/metrik-evaluasi.md` |
+| Format berkas | Parquet, CSV append-only, `.npy` float32, JSON | 003 | `docs/dataset.md` |
+| Hardware dan tempat menjalankan | Vast.ai Linux, RTX 3090 24 GB, RAM ≥ 32 GB, CPU ≥ 24, disk 50 GB; thread = min(jatah cgroup, 24) | 002 | `docs/lingkungan-eksekusi.md` |
+| Pencatatan resource dan env_id | Otomatis oleh kode ke Lingkungan, manual oleh Arya di `README.md`; env_id = hash semua field statis + hostname | 002, 003, 004 | `docs/lingkungan-eksekusi.md` |
+| Seed | IVF: seed k-means bawaan FAISS 1234, dibaca dari index; LSH: seed rotasi bawaan FAISS 5 (konstanta kode sumber 1.15.1); keduanya dicatat di Run. Seed project 42 hanya untuk split | 004 | `docs/tech-stack.md` |
 
 Masih belum diputuskan:
 
-| Kode | Hal |
-|---|---|
-| H1 | Teks dokumen yang di-embed (title + text atau text saja) |
-| H2 | Parameter tiap algoritma dan ada/tidaknya sapuan di val |
-| H3 | Tanda berhasil benchmark dan aturan memilih konfigurasi yang dikunci dari val |
-| H4 | Cara mengukur QPS dan latensi p50 |
-| H5 | Definisi metrik #12 (ukuran index / memori) |
-| H6 | Penanganan jarak exact = 0 pada #8 Relative distance error |
-| H7 | Presisi encode, ukuran batch, pemeriksaan kesamaan dengan `model.encode` |
-| H8 | Format berkas fisik tabel, vektor, dan metadata |
-| H9 | Versi Python pasti (3.10–3.13) |
-| H10 | Tempat penyimpanan di luar Vast.ai |
-| H11 | Field yang membentuk env_id |
-| H12 | Perilaku pencatatan resource di luar Linux |
-| H13 | Versi torch dan numpy (dikunci dari `pip freeze` instance Vast.ai) |
-| — | Lisensi model, tujuan keluaran (skripsi, paper, atau laporan internal), grafik laporan |
+| Kode | Hal | Status |
+|---|---|---|
+| H4 | Cara mengukur QPS dan latensi p50 | Dijawab Arya sebelum notebook search pertama |
+| H5 | Definisi metrik #12 (ukuran index / memori) | Dijawab Arya sebelum notebook search pertama |
+| H6 | Penanganan jarak exact = 0 pada #8 Relative distance error | Dijawab Arya saat menulis penilai |
+| H9 | Versi Python pasti (3.10–3.13) | Dijawab Arya saat instance Vast.ai pertama dibuat |
+| H10 | Tempat penyimpanan di luar Vast.ai | Dijawab Arya sebelum instance pertama dihapus |
+| H12 | Perilaku pencatatan resource di luar Linux | Hanya kalau notebook dijalankan lokal |
+| H13 | Versi torch dan numpy (dikunci dari `pip freeze` instance Vast.ai) | Dijawab Arya saat instance Vast.ai pertama dibuat |
+| H16 | Penguncian versi pyarrow dan pandas | Belum dijadwalkan |
+| — | Lisensi model, grafik laporan | Saat menyusun laporan |
 
 ## Dokumen rancangan
 
@@ -64,17 +65,34 @@ Kode hanya ditulis dari rancangan yang sudah berstatus `siap dikerjakan`.
 
 ## Kontrak berkas
 
-Notebook terhubung hanya lewat berkas di folder berikut, tanpa import antar-notebook. Entitas dan aturannya dari rancangan 001a. Nama berkas, kolom, dan format ditetapkan di rancangan 002; notebook penulis dan pembaca dicantumkan saat notebook dibuat.
+Notebook terhubung hanya lewat berkas berikut, tanpa import antar-notebook. Entitas dan aturannya dari rancangan 001a–003a; format dari K9 (003a); nama berkas dari rencana 003b. Kolom CSV, kunci JSON, dan kolom Parquet adalah kontrak: mengubahnya berarti mengubah semua notebook pembacanya.
 
-| Entitas | Folder | Ditulis oleh | Dibaca oleh | Aturan |
-|---|---|---|---|---|
-| Dataset mentah (korpus, query, qrels) | `data/raw/` | Arya, diunduh manual | Penyiapan data | Tidak pernah diubah |
-| Dokumen, Query (beserta split), Penilaian relevansi | `data/processed/` | Penyiapan data (K2) | Pembuat embedding, Penilai | Split val/test 50:50 seed 42, ditetapkan sekali dan dikunci hash; tidak ditimpa tanpa pemeriksaan hash |
-| Set embedding, Vektor dokumen, Vektor query | `data/embeddings/<embedding_id>/` | Pembuat embedding (K1) | Exact, HNSW, IVF, LSH | Konfigurasi berbeda → embedding_id baru; vektor lama tidak ditimpa; urutan baris = urutan id yang disimpan bersama |
-| Tetangga exact | `data/embeddings/<embedding_id>/` | Exact search (K3) | Penilai di HNSW, IVF, LSH | Hanya sah untuk embedding_id yang sama; exact dijalankan sebelum ANN |
-| Run, Lingkungan | `outputs/tuning/` | Exact, HNSW, IVF, LSH | Tabel hasil (K4) | Run hanya ditambah, tidak pernah ditimpa; lingkungan dicatat per sesi |
+| Entitas | Berkas | Format | Ditulis oleh | Dibaca oleh | Aturan |
+|---|---|---|---|---|---|
+| Dataset mentah (korpus, topics, qrels) | `data/raw/`: 3 file `docs-*.jsonl.gz`, `topics/*.tsv`, `qrels/*.tsv` | jsonl.gz, TSV | Arya, diunduh manual | `00_load_dataset` | Tidak pernah diubah |
+| Data termuat sebelum validasi | `data/interim/corpus.parquet`, `topics.parquet`, `qrels.parquet`, `metadata.json` (revision dataset) | Parquet, JSON | `00_load_dataset` | `01_preprocessing` | Salinan isi dataset mentah apa adanya, tanpa filter |
+| Dokumen | `data/processed/documents.parquet` | Parquet | `01_preprocessing` | `02_embedding` | doc_id unik; tidak diubah setelah disiapkan |
+| Query | `data/processed/queries.parquet` | Parquet | `01_preprocessing` | `02_embedding`, `03_exact`, `04a`–`04c`, `06_final_benchmark` | split ∈ {val, test}, 50:50 seed 42, dikunci hash; test hanya dibaca `06_final_benchmark` setelah hash Kunci konfigurasi cocok |
+| Penilaian relevansi | `data/processed/qrels.parquet` | Parquet | `01_preprocessing` | `03_exact`, `04a`–`04c`, `06_final_benchmark` | Relevan kalau relevance ≥ 1; id yang tidak ada dibuang dan jumlahnya dicatat |
+| Metadata penyiapan data | `data/processed/metadata.json` (hash split, revision dataset, jumlah yang dibuang) | JSON | `01_preprocessing` | `01_preprocessing` (gate checksum), `02_embedding` | Split tidak ditimpa kalau hash berbeda |
+| Set embedding | `data/embeddings/<embedding_id>/embedding_set.json` | JSON | `02_embedding` | `03_exact`, `04a`–`04c`, `06_final_benchmark` | Konfigurasi berbeda → embedding_id baru; vektor lama tidak ditimpa |
+| Vektor dokumen | `data/embeddings/<embedding_id>/doc_vectors.npy` + `doc_ids.parquet` | `.npy` float32, Parquet | `02_embedding` | `03_exact`, `04a`–`04c`, `06_final_benchmark` | 1.446.315 baris; urutan baris = urutan `doc_ids.parquet`; norma L2 = 1 |
+| Vektor query | `data/embeddings/<embedding_id>/query_vectors.npy` + `query_ids.parquet` | `.npy` float32, Parquet | `02_embedding` | `03_exact`, `04a`–`04c`, `06_final_benchmark` | 960 baris; urutan baris = urutan `query_ids.parquet`; norma L2 = 1 |
+| Tetangga exact | `data/embeddings/<embedding_id>/exact_neighbors.parquet` | Parquet | `03_exact` (split val) | `04a`–`04c` | Hanya sah untuk embedding_id yang sama; exact dijalankan sebelum ANN |
+| Run | `outputs/tuning/runs_<algorithm>.csv` (val); `outputs/metrics/runs_test.csv` (test) | CSV append-only | `03_exact`, `04a`–`04c` (val); `06_final_benchmark` (test) | `05_val_results`, `06_final_benchmark` | Satu konfigurasi sapuan = satu baris; hanya ditambah, tidak pernah ditimpa |
+| Lingkungan | `outputs/tuning/environment_<env_id>.json` | JSON | `02_embedding`, `03_exact`, `04a`–`04c`, `06_final_benchmark` | `05_val_results`, `06_final_benchmark` | env_id = hash field statis + hostname; field dinamis tidak masuk hash |
+| Kunci konfigurasi | `outputs/tuning/locked_config.json` | JSON | `05_val_results` | `06_final_benchmark` | Ditulis sekali sebelum test dibuka; notebook final berhenti kalau hash tidak cocok |
 
-`data/` dan `outputs/` di-gitignore; susunan foldernya dijaga dengan `.gitkeep`.
+`data/` dan `outputs/` di-gitignore; susunan foldernya dijaga dengan `.gitkeep`. Notebook di kolom Ditulis oleh dan Dibaca oleh dibangun lewat rencana 003b langkah 3–11.
+
+## Fungsi tersalin
+
+Fungsi yang dipakai beberapa notebook disalin, tidak di-import, dan setiap salinan harus identik. Saat mengubah satu salinan, ubah semua salinannya dalam pekerjaan yang sama.
+
+| Fungsi | Ada di |
+|---|---|
+| `load_parquet` | 01, 02 |
+| `load_json` | 01, 02 |
 
 ## Agent dan skill di repo ini
 

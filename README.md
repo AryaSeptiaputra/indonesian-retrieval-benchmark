@@ -2,43 +2,52 @@
 
 Benchmark algoritma pencarian vektor untuk retrieval teks berbahasa Indonesia. Semua dokumen dan query di-embed sekali dengan `LazarusNLP/congen-indobert-base`, lalu dicari dengan exact dense search (brute-force, baseline) dan tiga algoritma Approximate Nearest Neighbor: HNSW, IVF, dan LSH. Keempatnya membaca vektor yang sama, sehingga perbedaan hasil hanya berasal dari algoritma pencariannya.
 
+Proyek ini adalah portofolio pribadi tentang kemampuan mengimplementasikan retrieval.
+
 ## Status
 
-Baru struktur folder, `requirements.txt`, dan dokumen keputusan; belum ada notebook dan kode. Dataset, library, metrik, dan lingkungan eksekusi sudah diputuskan di rancangan 002 (lihat Dokumen rancangan). Teks dokumen yang di-embed, parameter algoritma, dan beberapa hal lain belum diputuskan. Notebook dibuat satu per satu saat pembangunan berjalan.
+Struktur folder, `requirements.txt`, dan dokumen keputusan sudah ada; notebook dibangun satu per satu lewat rencana 003b. Dataset, library, metrik, format berkas, parameter sapuan, aturan pemilihan konfigurasi, dan lingkungan eksekusi sudah diputuskan (rancangan 002–004). Yang masih belum diputuskan tercatat di bagian "Belum diputuskan" `CLAUDE.md`.
 
 ## Susunan folder
 
 ```
 indonesian-retrieval-benchmark/
+├── notebooks/             # seluruh kode; dijalankan dari folder ini (dibangun lewat rencana 003b)
 ├── data/                  # di-gitignore, susunan dijaga .gitkeep
-│   ├── raw/               # dataset mentah (korpus, query, qrels) dari Arya; tidak pernah diubah
-│   ├── processed/         # Dokumen, Query beserta split val/test, Penilaian relevansi
-│   └── embeddings/        # satu subfolder per embedding_id: Set embedding, Vektor dokumen, Vektor query, Tetangga exact
+│   ├── raw/               # dataset mentah (korpus, topics, qrels) dari Arya; tidak pernah diubah
+│   ├── interim/           # data termuat sebelum validasi (Parquet)
+│   ├── processed/         # Dokumen, Query beserta split val/test, Penilaian relevansi (Parquet)
+│   └── embeddings/        # satu subfolder per embedding_id: Set embedding, Vektor (.npy), Tetangga exact
 ├── outputs/               # di-gitignore, susunan dijaga .gitkeep
-│   └── tuning/            # catatan Run (hanya ditambah) dan Lingkungan per sesi
+│   ├── tuning/            # catatan Run val (CSV, hanya ditambah), Lingkungan, Kunci konfigurasi
+│   └── metrics/           # catatan Run benchmark final di split test
 ├── docs/                  # rancangan sistem, rencana pembangunan, dokumen keputusan
 ├── requirements.txt       # dependency yang versinya sudah diputuskan
 └── CLAUDE.md              # aturan project dan kontrak berkas antarnotebook
 ```
 
-## Bagian sistem dan urutan menjalankan
+Folder `notebooks/`, `data/interim/`, dan `outputs/metrics/` dibuat saat notebook yang memakainya dibangun.
 
-| Urutan | Bagian | Membaca | Menulis |
+## Urutan menjalankan notebook
+
+| Notebook | Bagian | Membaca | Menulis |
 |---|---|---|---|
-| 1 | Penyiapan data | `data/raw/` | `data/processed/` — split query val/test 50:50 seed 42, dikunci hash |
-| 2 | Pembuat embedding | `data/processed/` | `data/embeddings/` — max_seq_length 32, normalisasi L2, revision model dicatat |
-| 3 | Exact search | `data/embeddings/` | Tetangga exact di `data/embeddings/`; Run di `outputs/tuning/` |
-| 4 | HNSW, IVF, LSH | `data/embeddings/`, Tetangga exact | Run di `outputs/tuning/` |
-| 5 | Tabel hasil | `outputs/tuning/` | Tabel keempat algoritma berdampingan untuk split val |
+| `00_load_dataset` | Pemuatan dataset (K5) | `data/raw/` | `data/interim/` — revision dataset dicatat |
+| `01_preprocessing` | Penyiapan data (K2) | `data/interim/` | `data/processed/` — split query val/test 50:50 seed 42, dikunci hash |
+| `02_embedding` | Pembuat embedding (K1), GPU | `data/processed/` | `data/embeddings/<embedding_id>/` — title + text, 32 token, fp32, norma 1 |
+| `03_exact` | Exact search (K3) | `data/embeddings/` | Tetangga exact; Run di `outputs/tuning/` |
+| `04a_hnsw`, `04b_ivf`, `04c_lsh` | Sapuan HNSW, IVF, LSH di val (K10) | `data/embeddings/`, Tetangga exact | Run di `outputs/tuning/` (16 run val bersama exact) |
+| `05_val_results` | Tabel hasil val dan Pemilih konfigurasi (K11) | `outputs/tuning/` | Kunci konfigurasi |
+| `06_final_benchmark` | Benchmark final (K2, D4) | Kunci konfigurasi, Lingkungan | Run test di `outputs/metrics/` |
 
-Exact search dijalankan sebelum HNSW, IVF, dan LSH karena tetangganya menjadi pembanding ANN. Penilai menjadi tahap di setiap bagian algoritma: membaca Penilaian relevansi dan Tetangga exact, lalu mencatat hasil sebagai Run beserta Lingkungan. Split test tidak dipakai sampai benchmark final.
+Exact dijalankan sebelum HNSW, IVF, dan LSH karena tetangganya menjadi pembanding ANN. Penilai menjadi tahap di setiap notebook algoritma. Split test hanya dibuka sekali di `06_final_benchmark`, setelah hash Kunci konfigurasi dan env_id cocok, jadi `03`–`06` dijalankan di instance Vast.ai yang sama.
 
-Notebook saling terhubung hanya lewat berkas di folder di atas. Rinciannya ada di bagian "Kontrak berkas" di `CLAUDE.md`.
+Notebook saling terhubung hanya lewat berkas. Rinciannya ada di bagian "Kontrak berkas" di `CLAUDE.md`.
 
 ## Prasyarat
 
 - Python 3.10–3.13 (versi pasti belum diputuskan, H9).
-- `pip install -r requirements.txt`: sentence-transformers, faiss-cpu, datasets. Versi torch dan numpy dikunci nanti dari `pip freeze` instance Vast.ai (H13).
+- `pip install -r requirements.txt`: sentence-transformers, faiss-cpu, datasets. Versi torch dan numpy dikunci nanti dari `pip freeze` instance Vast.ai (H13); pyarrow dan pandas ikut terpasang lewat datasets, penguncian versinya belum dijadwalkan (H16).
 - Instance Vast.ai sesuai `docs/lingkungan-eksekusi.md`.
 - Dataset MIRACL id diletakkan Arya di `data/raw/` (lihat `docs/dataset.md`); agent tidak mengunduh data.
 
