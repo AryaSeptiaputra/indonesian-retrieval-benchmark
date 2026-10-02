@@ -1,6 +1,6 @@
 # Metrik Evaluasi
 
-Ringkasan keputusan K7, K4, K11, dan D4 dari rancangan 002a, 003a, dan 004a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku. Dokumen ini bukan `docs/rencana-evaluasi.md` (milik red-chan).
+Ringkasan keputusan K7, K4, K11, dan D4 dari rancangan 002a, 003a, 004a, 005a, dan 006a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`, `docs/rancangan/005a_2026-10-02_mvp-pengukuran-cgroup.md`, `docs/rancangan/006a_2026-10-03_mvp-pemanasan-qps.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku. Dokumen ini bukan `docs/rencana-evaluasi.md` (milik red-chan).
 
 ## Ringkasan
 
@@ -53,6 +53,72 @@ Keterangan tambahan dari `docs/keputusan-produk.md`:
 - HNSW dan IVF sudah terurut L2; hasil LSH terurut Hamming sehingga lima jarak L2-nya wajib diurutkan ulang menaik sebelum #8 (pilihan Arya 002 titik periksa 3a).
 - Pembagi AP@5 = min(|Rel(q)|, 5) supaya setiap query bisa mencapai 1,0 (pilihan Arya 002 titik periksa 4a).
 
+## Pengukuran efisiensi (005a)
+
+| Metrik | Cara ukur |
+|---|---|
+| #10 Latensi p50 | `time.perf_counter_ns` hanya membungkus `index.search(1 query, k = 5)`; 10 query pemanasan sekali sebelum putaran pertama, tidak dihitung; 3 putaran atas semua query split; p50 = median semua pengukuran (ms) |
+| #9 QPS | Semua query split dalam satu panggilan `index.search` dengan n thread, 5 ulangan T₁..T₅; QPS = n_query ÷ median(T₁..T₅). Sebelum T₁ dijalankan satu panggilan batch pemanasan T₀ yang tidak diukur dan hasilnya tidak dipakai, sekali per konfigurasi (006a) |
+| #12 Ukuran index | `len(faiss.serialize_index(index))` byte; puncak RAM proses dicatat di Lingkungan |
+
+QPS dan p50 mengukur hal berbeda (QPS ≠ 1000 / p50); K11 memakai QPS batch. Kartu K7 005a, apa adanya:
+
+```
+K7 · Latency and throughput measurement — Umum [S15]  ✎ H4
+Alat ukur    time.perf_counter_ns, hanya membungkus index.search;
+             memuat data dan menghitung metrik tidak termasuk
+p50 (#10)    t_{r,q} = waktu index.search(1 query, k = 5)
+             10 query pemanasan sekali sebelum putaran pertama, tidak dihitung
+             r = 1..3 putaran atas semua query split
+             p50 = median { t_{r,q} } (ms)
+QPS (#9)     Tⱼ = waktu index.search(semua query split, k = 5) dengan n thread
+             j = 1..5;  QPS = n_query / median(T₁, …, T₅)
+Catatan      QPS ≠ 1000 / p50: panggilan 1 query praktis satu thread; untuk
+             exact, 1 query memakai jalur jarak langsung dan batch ≥ 167 query
+             memakai jalur BLAS (nq · d ≥ 128.000). K11 memakai QPS batch
+```
+
+```
+K7 · Index size (#12) — Umum  ✎ H5
+Definisi     #12 = len(faiss.serialize_index(index)) byte
+Catatan      Serialisasi membuat salinan sementara sebesar index (exact ≈ 4,44 GB,
+             HNSW ≈ 4,8 GB); buffer dilepas segera setelah panjangnya diambil;
+             puncak RAM proses dicatat di Lingkungan (field dinamis K8)
+```
+
+Kartu K7 #9 006a, apa adanya:
+
+```
+K7 #9 · QPS warm-up — Umum  ✎ H17
+Pemanasan    T₀ = index.search(semua query split, k = 5) dengan n thread;
+             tidak diukur, hasilnya tidak dipakai
+Pengukuran   Tⱼ = waktu index.search(semua query split, k = 5) dengan n thread,
+             j = 1..5, dijalankan setelah T₀; time.perf_counter_ns, hanya
+             index.search
+Rumus        QPS = n_query / median(T₁, …, T₅)   (tidak berubah dari 005a)
+Frekuensi    Sekali per konfigurasi, tepat sebelum 5 ulangan QPS konfigurasi
+             itu (asumsi: sapuan efSearch/nprobe mengganti parameter search
+             pada index yang sama)
+```
+
+## #8 Relative distance error di dekat nol (005a)
+
+Skor L2² dipotong ke 0 sebelum diakarkan. Suku dengan dᴱˣᵢ ≤ 1e-3 dikeluarkan; RDE per query dirata-rata atas suku yang tersisa; query tanpa suku tersisa tidak ikut rata-rata antarquery. Tanpa suku yang dikeluarkan, hasilnya sama dengan rumus 002. Suku 0/0 milik exact ikut dikeluarkan sehingga #8 exact = 0 (D4). Kartu K7 005a, apa adanya (menggantikan baris #8 di kartu 002a untuk kasus dᴱˣᵢ kecil):
+
+```
+K7 · Relative distance error (#8) near-zero rule — Umum [S15]  ✎ H6
+Jarak        d = √max(skor L2² FAISS, 0)
+Ambang       τ = 1e-3 pada d (setara skor L2² ≤ 1e-6)  — titik periksa 1a
+Rumus        I(q)   = { i ∈ 1..5 : dᴱˣᵢ > τ }
+             RDE(q) = (1 / |I(q)|) · Σ_{i ∈ I(q)} (dᴬᴺᴺ₍ᵢ₎ − dᴱˣᵢ) / dᴱˣᵢ
+             #8     = rata-rata RDE(q) atas query dengan |I(q)| ≥ 1
+                                                           — titik periksa 2a
+             tanpa suku dikeluarkan, |I(q)| = 5 → sama dengan rumus 002
+Diagnostik   Σ_q (5 − |I(q)|) dan jumlah query dengan |I(q)| = 0, dicatat di Run
+Exact        Suku 0/0 milik exact ikut dikeluarkan → #8 exact = 0 (D4)
+Tetap        Urutan ulang L2 untuk LSH, penalti slot −1 = 2
+```
+
 ## Hasil kurang dari 5 (slot −1)
 
 FAISS mengembalikan ID −1 kalau hasil kurang dari 5, terutama dari IVF.
@@ -90,6 +156,8 @@ Setiap run menambah satu baris yang tidak pernah ditimpa. Satu konfigurasi sapua
 | thread FAISS, thread torch | Jumlah thread yang diset (K6) |
 | 12 metrik K7 | Nilai rata-rata atas query |
 | jumlah query dengan hasil < 5 | Kolom diagnostik |
+| jumlah suku #8 yang dikeluarkan | Kolom diagnostik (005a): Σ_q (5 − \|I(q)\|) |
+| jumlah query tanpa suku #8 tersisa | Kolom diagnostik (005a): query dengan \|I(q)\| = 0 |
 
 ## K11 · Memilih konfigurasi untuk test
 
@@ -123,8 +191,4 @@ D4 · Benchmark success criteria — ✎ H3
 
 ## Belum diputuskan
 
-| Kode | Hal | Dijawab paling lambat |
-|---|---|---|
-| H4 | Cara mengukur QPS dan latensi p50: query satu per satu atau batch, pemanasan, alat ukur waktu | Sebelum notebook search pertama |
-| H5 | Definisi metrik #12: byte hasil serialisasi index atau memori proses | Sebelum notebook search pertama |
-| H6 | Penanganan dᴱˣᵢ = 0 pada #8 Relative distance error (pembagian dengan nol) | Saat menulis penilai |
+Tidak ada untuk metrik. H4 (cara ukur QPS dan p50), H5 (#12), dan H6 (#8 di dekat nol) diputuskan di 005a; pemanasan sebelum ulangan QPS (H17) diputuskan di 006a.

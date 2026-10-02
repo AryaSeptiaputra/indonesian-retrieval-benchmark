@@ -4,8 +4,8 @@ Produk: indonesian-retrieval-benchmark
 Jenis: riset ML (benchmark algoritma pencarian vektor)
 Fase: MVP (satu-satunya fase project)
 Data: tingkat 3 — data riset publik lengkap: korpus `miracl/miracl-corpus` id dan query/qrels `miracl/miracl` id dev, dimuat di instance Vast.ai. Bukan data pengganti. Mode data rahasia: tidak aktif.
-Status: usulan (perubahan rancangan 006; keputusan 001–005 yang tidak disentuh tetap berlaku)
-Diperbarui: 2026-10-02
+Status: siap dikerjakan
+Diperbarui: 2026-10-03
 
 ## Ringkasan
 Benchmark yang membandingkan exact search (baseline) dengan tiga algoritma ANN (HNSW, IVF, LSH) untuk retrieval teks berbahasa Indonesia, dikerjakan Arya sebagai portofolio pribadi kemampuan mengimplementasikan retrieval. Semua 1.446.315 passage MIRACL-id (title + text) dan 960 query dev di-embed sekali dalam fp32 dengan `LazarusNLP/congen-indobert-base` di GPU Vast.ai, lalu keempat algoritma FAISS mencari top-5 di CPU atas vektor yang sama dengan sapuan parameter di split val. Per algoritma dipilih konfigurasi tercepat yang mencapai k-NN Recall@5 ≥ 0,95, dikunci, lalu split test dibuka sekali di benchmark final dan dicatat dengan 12 metrik beserta resource mesin.
@@ -71,7 +71,7 @@ Tidak ada titik periksa. H14 dan H15 adalah keputusan Arya ("Terima usulan pink-
    c. Semua suku yang tersisa dari seluruh query dirata-rata langsung (pooled) — setiap suku berbobot sama, tetapi menyimpang dari aturan K7 "metrik per query dirata-rata atas query".
 
 ### Rancangan 006
-Tidak ada titik periksa. H17 adalah keputusan Arya ("1 batch tanpa diukur").
+Tidak ada titik periksa. H17 adalah keputusan Arya ("1 batch tanpa diukur"); disetujui ✓ 2026-10-03.
 
 ## Bentrokan
 | Bentrokan | Cara rancangan menghindarinya |
@@ -293,3 +293,4 @@ Sumber riset 001 putaran 1 lain (S2, S4, S9) tidak menjadi dasar keputusan. Fakt
 | 2026-10-02 | 005 usulan: K7 diisi cara ukur QPS (batch, 5 ulangan, median) dan p50 (1 query, 10 pemanasan, 3 putaran), definisi #12 (byte `serialize_index`), aturan jarak exact mendekati 0 pada #8 dan pemotongan skor L2² negatif; K4 kolom diagnostik suku #8 yang dikeluarkan; K6 dan K8 cgroup v1 dan v2; bagian Pengukur waktu dan ukuran ditambah ke Gambaran sistem; H4, H5, H6 keluar dari Belum pasti | Keputusan Arya H4, H5, H6 dan temuan 003b langkah 5 ("Lanjutkan") |
 | 2026-10-02 | 005 disetujui: ambang #8 menjadi dᴱˣᵢ ≤ 1e-3 (mengganti 1e-6 dari keputusan H6); #8 per query dirata-rata atas suku tersisa (1/|I(q)|), query tanpa suku tersisa tidak ikut rata-rata antarquery dan jumlahnya dicatat di Run; status kembali siap dikerjakan | 005 titik periksa 1a dan 2a, persetujuan Arya |
 | 2026-10-02 | 006 usulan: K7 #9 QPS didahului satu panggilan batch pemanasan (semua query split, n thread) yang tidak diukur; rumus QPS tidak berubah. H18 (urutan deteksi cgroup di host hybrid) dan H19 (versi cgroup dicatat atau tidak) dicatat sebagai Belum pasti beserta perilaku sementaranya | Keputusan Arya H17 ("1 batch tanpa diukur"); kode H17–H19 dari pink-chan saat menyusun 005b |
+| 2026-10-03 | 006 disetujui tanpa koreksi; status kembali siap dikerjakan | Persetujuan Arya |

@@ -1,6 +1,6 @@
 # Lingkungan Eksekusi
 
-Ringkasan keputusan K6 dan K8 dari rancangan 002a, 003a, dan 004a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku.
+Ringkasan keputusan K6 dan K8 dari rancangan 002a, 003a, 004a, dan 005a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`, `docs/rancangan/005a_2026-10-02_mvp-pengukuran-cgroup.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku.
 
 ## Tempat menjalankan (K6)
 
@@ -33,6 +33,22 @@ Penyimpanan Vast.ai tidak permanen. Vektor, catatan run, dan hasil disalin kelua
 
 Angka efisiensi hanya sah dalam satu sesi dan satu mesin; benchmark final di split test sebaiknya dijalankan di sesi yang sama dengan val, dan notebook final memeriksa Lingkungan.
 
+## Pembacaan cgroup (K6, K8, 005a)
+
+Jatah CPU dan RAM dibaca dari cgroup v2 atau v1, karena sebagian host Vast.ai masih memakai cgroup v1. Jatah tanpa batas di v1 (quota −1, atau batas RAM sangat besar) diperlakukan sama seperti "max" di v2. Kartu K6 · K8 005a, apa adanya:
+
+```
+K6 · K8 · cgroup quota reader — Umum  ✎ temuan 003b langkah 5
+CPU          v2: cpu.max  ·  v1: cpu.cfs_quota_us / cpu.cfs_period_us
+             dibatasi sched_getaffinity; thread n = ⌊min(jatah, 24)⌋
+RAM          v2: memory.max  ·  v1: memory.limit_in_bytes
+Tanpa batas  v1 quota −1 atau limit sangat besar diperlakukan sama seperti
+             v2 "max" (asumsi, mengikuti notebook 02)
+Alasan       Sebagian host Vast.ai masih cgroup v1; notebook 02 kini hanya
+             membaca v2 dan berhenti di host v1
+Terpisah     H12 (perilaku di luar Linux) tetap belum diputuskan
+```
+
 ## Pencatatan resource (K8)
 
 Dicatat otomatis oleh kode ke entitas Lingkungan:
@@ -40,8 +56,8 @@ Dicatat otomatis oleh kode ke entitas Lingkungan:
 | Kelompok | Yang dicatat |
 |---|---|
 | GPU | Model, VRAM, driver, versi CUDA, puncak VRAM terpakai |
-| CPU | Model, flag AVX2/AVX-512, jatah vCPU (cgroup `cpu.max` dan `sched_getaffinity`), total vCPU mesin |
-| RAM | Jatah (cgroup `memory.max`), puncak RAM terpakai |
+| CPU | Model, flag AVX2/AVX-512, jatah vCPU (cgroup v2 `cpu.max` atau v1 `cpu.cfs_quota_us`/`cpu.cfs_period_us`, dibatasi `sched_getaffinity`), total vCPU mesin |
+| RAM | Jatah (cgroup v2 `memory.max` atau v1 `memory.limit_in_bytes`), puncak RAM terpakai |
 | Disk | Total dan sisa |
 | Thread | Jumlah thread FAISS dan torch |
 | Versi | Python dan library |
@@ -83,3 +99,5 @@ Ditolak: env_id hanya dari field H11 + hostname (Arya memilih semua field statis
 |---|---|---|
 | H10 | Tempat penyimpanan di luar Vast.ai | Sebelum instance pertama dihapus |
 | H12 | Perilaku kode pencatatan resource di luar Linux (pembacaan cgroup hanya ada di Linux; laptop Arya Windows) | Hanya kalau notebook dijalankan lokal |
+| H18 | Urutan deteksi cgroup di host hybrid v1+v2. Perilaku sementara (006a): notebook berhenti dengan error kalau berkas v1 dan v2 sama-sama ada, sebelum mengukur apa pun | Belum dijadwalkan |
+| H19 | Versi cgroup dicatat di Lingkungan atau tidak. Perilaku sementara (006a): tidak dicatat; kalau kelak dicatat, ia field statis dan ikut env_id | Belum dijadwalkan |

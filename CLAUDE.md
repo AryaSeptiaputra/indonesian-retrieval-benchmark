@@ -31,9 +31,12 @@ Sudah diputuskan:
 | Encode | Dokumen `title + " " + text`, fp32, batch mulai 1024, pemeriksaan 100 sampel vs `model.encode` (1e-5) | 003 | `docs/tech-stack.md` |
 | Parameter dan sapuan | HNSW M 32, efConstruction 200, efSearch ×5; IVF nlist 4096, nprobe ×7; LSH nbits 768/1536/3072; 16 run val | 003 | `docs/tech-stack.md` |
 | Metrik | 12 metrik, k = 5, latensi p50, aturan slot −1 | 002 | `docs/metrik-evaluasi.md` |
+| Pengukuran efisiensi | `perf_counter_ns` hanya membungkus `index.search`; p50: 1 query per panggilan, 10 pemanasan, 3 putaran; QPS: satu batch semua query, 5 ulangan, n_query ÷ median; #12 = byte `faiss.serialize_index` | 005 | `docs/metrik-evaluasi.md` |
+| Pemanasan QPS | Satu panggilan batch T₀ yang tidak diukur sebelum 5 ulangan QPS, sekali per konfigurasi | 006 | `docs/metrik-evaluasi.md` |
+| #8 di dekat nol | d = √max(L2², 0); suku dᴱˣᵢ ≤ 1e-3 dikeluarkan; rata-rata per query atas suku tersisa; dua kolom diagnostik di Run | 005 | `docs/metrik-evaluasi.md` |
 | Pemilihan konfigurasi dan tanda berhasil | QPS tertinggi dengan k-NN Recall@5 ≥ 0,95 (kalau tidak ada, recall tertinggi); D4: 12 metrik lengkap di test, exact #7 = 1 dan #8 = 0, exact ulang identik | 003 | `docs/metrik-evaluasi.md` |
 | Format berkas | Parquet, CSV append-only, `.npy` float32, JSON | 003 | `docs/dataset.md` |
-| Hardware dan tempat menjalankan | Vast.ai Linux, RTX 3090 24 GB, RAM ≥ 32 GB, CPU ≥ 24, disk 50 GB; thread = min(jatah cgroup, 24) | 002 | `docs/lingkungan-eksekusi.md` |
+| Hardware dan tempat menjalankan | Vast.ai Linux, RTX 3090 24 GB, RAM ≥ 32 GB, CPU ≥ 24, disk 50 GB; thread = min(jatah cgroup, 24); jatah dibaca dari cgroup v2 atau v1 | 002, 005 | `docs/lingkungan-eksekusi.md` |
 | Pencatatan resource dan env_id | Otomatis oleh kode ke Lingkungan, manual oleh Arya di `README.md`; env_id = hash semua field statis + hostname | 002, 003, 004 | `docs/lingkungan-eksekusi.md` |
 | Seed | IVF: seed k-means bawaan FAISS 1234, dibaca dari index; LSH: seed rotasi bawaan FAISS 5 (konstanta kode sumber 1.15.1); keduanya dicatat di Run. Seed project 42 hanya untuk split | 004 | `docs/tech-stack.md` |
 
@@ -41,14 +44,13 @@ Masih belum diputuskan:
 
 | Kode | Hal | Status |
 |---|---|---|
-| H4 | Cara mengukur QPS dan latensi p50 | Dijawab Arya sebelum notebook search pertama |
-| H5 | Definisi metrik #12 (ukuran index / memori) | Dijawab Arya sebelum notebook search pertama |
-| H6 | Penanganan jarak exact = 0 pada #8 Relative distance error | Dijawab Arya saat menulis penilai |
 | H9 | Versi Python pasti (3.10–3.13) | Dijawab Arya saat instance Vast.ai pertama dibuat |
 | H10 | Tempat penyimpanan di luar Vast.ai | Dijawab Arya sebelum instance pertama dihapus |
 | H12 | Perilaku pencatatan resource di luar Linux | Hanya kalau notebook dijalankan lokal |
 | H13 | Versi torch dan numpy (dikunci dari `pip freeze` instance Vast.ai) | Dijawab Arya saat instance Vast.ai pertama dibuat |
 | H16 | Penguncian versi pyarrow dan pandas | Belum dijadwalkan |
+| H18 | Urutan deteksi cgroup di host hybrid v1+v2 | Belum dijadwalkan; sementara notebook berhenti dengan error di host hybrid sebelum mengukur apa pun (006a) |
+| H19 | Versi cgroup dicatat di Lingkungan atau tidak | Belum dijadwalkan; sementara tidak dicatat (006a) |
 | — | Lisensi model, grafik laporan | Saat menyusun laporan |
 
 ## Dokumen rancangan
@@ -91,8 +93,24 @@ Fungsi yang dipakai beberapa notebook disalin, tidak di-import, dan setiap salin
 
 | Fungsi | Ada di |
 |---|---|
-| `load_parquet` | 01, 02 |
-| `load_json` | 01, 02 |
+| `load_parquet` | 01, 02, 03 |
+| `load_json` | 01, 02, 03 |
+| `parse_cpu_max` | 02, 03 |
+| `parse_cfs_quota` | 02, 03 |
+| `fetch_cgroup_cpu_quota` | 02, 03 |
+| `fetch_cpu_quota` | 02, 03 |
+| `compute_thread_count` | 02, 03 |
+| `set_num_threads` | 02, 03 |
+| `parse_nvidia_smi` | 02, 03 |
+| `fetch_gpu_info` | 02, 03 |
+| `parse_cpuinfo` | 02, 03 |
+| `parse_memory_max` | 02, 03 |
+| `parse_memory_limit` | 02, 03 |
+| `fetch_memory_quota` | 02, 03 |
+| `fetch_library_versions` | 02, 03 |
+| `collect_environment` | 02, 03 |
+| `compute_env_id` | 02, 03 |
+| `save_environment` | 02, 03 |
 
 ## Agent dan skill di repo ini
 
