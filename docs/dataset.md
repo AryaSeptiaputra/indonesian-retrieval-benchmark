@@ -1,6 +1,6 @@
 # Dataset dan Data
 
-Ringkasan keputusan D3, K2, K5, K9, dan model data dari rancangan 002a, 003a, 004a, dan 005a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`, `docs/rancangan/005a_2026-10-02_mvp-pengukuran-cgroup.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku.
+Ringkasan keputusan D3, K2, K5, K9, dan model data dari rancangan 002a, 003a, 004a, 005a, dan 007a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`, `docs/rancangan/005a_2026-10-02_mvp-pengukuran-cgroup.md`, `docs/rancangan/007a_2026-10-03_mvp-penjaga-test.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku.
 
 ## Sumber data (D3)
 
@@ -70,8 +70,8 @@ Tidak ada basis data; data disimpan sebagai berkas yang menjadi kontrak antarbag
 | Vektor dokumen | float32[768] per dokumen — `.npy` | (embedding_id, row_idx) | N─1 Set embedding; 1─1 Dokumen lewat urutan doc_id yang disimpan bersama | Jumlah baris = 1.446.315; urutan baris = urutan doc_id tersimpan; norma L2 = 1 (wajib, karena penalti 2 pada #8 hanya sah untuk norma 1) |
 | Vektor query | float32[768] per query — `.npy` | (embedding_id, row_idx) | N─1 Set embedding; 1─1 Query | Aturan sama dengan Vektor dokumen; jumlah baris = 960 |
 | Tetangga exact | embedding_id, query_id, rank (1–5), doc_id, skor L2 kuadrat dari `IndexFlatL2` — Parquet | (embedding_id, query_id, rank) | N─1 Set embedding; N─1 Query; N─1 Dokumen | Hanya berlaku untuk embedding_id yang sama; skor disimpan apa adanya, pemotongan ke 0 hanya saat menghitung #8 (005a) |
-| Kunci konfigurasi | Per algoritma: konfigurasi terpilih (K11), run_id val asalnya, embedding_id, env_id, cap waktu, hash isi — JSON | hash isi | N─1 Run (val) | Ditulis sekali sebelum test dibuka; notebook final berhenti kalau hash tidak cocok |
-| Run | run_id, timestamp, embedding_id, env_id, algorithm, params (build dan search; IVF juga jumlah sampel latih dan seed k-means; LSH juga seed rotasi), split, k = 5, thread FAISS, thread torch, 12 metrik K7, jumlah query dengan hasil < 5, jumlah suku #8 yang dikeluarkan, jumlah query tanpa suku #8 tersisa (005a) — baris CSV append-only | run_id (surrogate) | N─1 Set embedding; N─1 Lingkungan | Satu konfigurasi sapuan = satu run; hanya ditambah; algorithm ∈ {flat, hnsw, ivf, lsh}; split ∈ {val, test}; slot −1 tidak pernah disimpan sebagai doc_id |
+| Kunci konfigurasi | Per algoritma: konfigurasi terpilih (K11), run_id val asalnya, embedding_id, env_id, cap waktu, hash isi — JSON | hash isi | N─1 Run (val); 1─N Run (test) lewat config_lock_hash (007a) | Ditulis sekali sebelum test dibuka; notebook final berhenti kalau hash tidak cocok |
+| Run | run_id, timestamp, embedding_id, env_id, algorithm, params (build dan search; IVF juga jumlah sampel latih dan seed k-means; LSH juga seed rotasi), split, k = 5, thread FAISS, thread torch, 12 metrik K7, jumlah query dengan hasil < 5, jumlah suku #8 yang dikeluarkan, jumlah query tanpa suku #8 tersisa (005a); untuk split test juga config_lock_hash, test_attempt, reopen_reason (007a) — baris CSV append-only | run_id (surrogate) | N─1 Set embedding; N─1 Lingkungan; N─1 Kunci konfigurasi (test) | Satu konfigurasi sapuan = satu run; hanya ditambah, baris lama tidak diubah atau dihapus; konfigurasi val unik (H20, sementara); test_attempt ≥ 1, sama untuk satu eksekusi notebook 06; reopen_reason wajib kalau test_attempt > 1; algorithm ∈ {flat, hnsw, ivf, lsh}; split ∈ {val, test}; slot −1 tidak pernah disimpan sebagai doc_id |
 | Lingkungan | Isi K8, jatah CPU dan RAM dari cgroup v1 atau v2 (lihat `docs/lingkungan-eksekusi.md`) — JSON | env_id (hash semua field statis + hostname) | 1─N Run | Field dinamis dicatat tetapi tidak masuk hash; angka efisiensi hanya dibandingkan antar-run dengan env_id sama; notebook final memeriksa env_id sama dengan run val |
 
 Relasi:
@@ -83,6 +83,7 @@ Relasi:
 [Query] 1──N [Tetangga exact] N──1 [Dokumen]
 [Set embedding] 1──N [Run] N──1 [Lingkungan]
 [Run (val)] 1──N [Kunci konfigurasi]   ← ditulis sekali sebelum test dibuka
+[Kunci konfigurasi] 1──N [Run (test)] lewat config_lock_hash (007a)
 ```
 
 Ukuran: satu salinan vektor korpus = 1.446.315 × 768 × 4 B ≈ 4,44 GB.

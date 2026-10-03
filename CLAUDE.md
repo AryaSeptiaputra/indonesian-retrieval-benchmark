@@ -34,7 +34,9 @@ Sudah diputuskan:
 | Pengukuran efisiensi | `perf_counter_ns` hanya membungkus `index.search`; p50: 1 query per panggilan, 10 pemanasan, 3 putaran; QPS: satu batch semua query, 5 ulangan, n_query ÷ median; #12 = byte `faiss.serialize_index` | 005 | `docs/metrik-evaluasi.md` |
 | Pemanasan QPS | Satu panggilan batch T₀ yang tidak diukur sebelum 5 ulangan QPS, sekali per konfigurasi | 006 | `docs/metrik-evaluasi.md` |
 | #8 di dekat nol | d = √max(L2², 0); suku dᴱˣᵢ ≤ 1e-3 dikeluarkan; rata-rata per query atas suku tersisa; dua kolom diagnostik di Run | 005 | `docs/metrik-evaluasi.md` |
-| Pemilihan konfigurasi dan tanda berhasil | QPS tertinggi dengan k-NN Recall@5 ≥ 0,95 (kalau tidak ada, recall tertinggi); D4: 12 metrik lengkap di test, exact #7 = 1 dan #8 = 0, exact ulang identik | 003 | `docs/metrik-evaluasi.md` |
+| Pemilihan konfigurasi dan tanda berhasil | QPS tertinggi dengan k-NN Recall@5 ≥ 0,95 (kalau tidak ada, recall tertinggi); D4: 12 metrik lengkap di test, exact #7 = 1 dan #8 = 0, exact ulang identik; D4 dinilai pada percobaan test terakhir | 003, 007 | `docs/metrik-evaluasi.md` |
+| Penjaga test | Notebook 06 berhenti sebelum query test dibaca kalau `runs_test.csv` sudah berisi percobaan untuk embedding_id yang sama; buka ulang hanya lewat `IZIN_BUKA_ULANG` dengan `ALASAN_BUKA_ULANG`; run test membawa `config_lock_hash`, `test_attempt`, `reopen_reason` | 007 | `docs/metrik-evaluasi.md`, `README.md` |
+| Penguncian dependency | torch, numpy, pyarrow, pandas dikunci `==` dari `pip freeze` instance yang sama, bersama tiga paket 002a; nilai versi menunggu H9, H13 | 007 | `docs/tech-stack.md` |
 | Format berkas | Parquet, CSV append-only, `.npy` float32, JSON | 003 | `docs/dataset.md` |
 | Hardware dan tempat menjalankan | Vast.ai Linux, RTX 3090 24 GB, RAM ≥ 32 GB, CPU ≥ 24, disk 50 GB; thread = min(jatah cgroup, 24); jatah dibaca dari cgroup v2 atau v1 | 002, 005 | `docs/lingkungan-eksekusi.md` |
 | Pencatatan resource dan env_id | Otomatis oleh kode ke Lingkungan, manual oleh Arya di `README.md`; env_id = hash semua field statis + hostname | 002, 003, 004 | `docs/lingkungan-eksekusi.md` |
@@ -48,9 +50,9 @@ Masih belum diputuskan:
 | H10 | Tempat penyimpanan di luar Vast.ai | Dijawab Arya sebelum instance pertama dihapus |
 | H12 | Perilaku pencatatan resource di luar Linux | Hanya kalau notebook dijalankan lokal |
 | H13 | Versi torch dan numpy (dikunci dari `pip freeze` instance Vast.ai) | Dijawab Arya saat instance Vast.ai pertama dibuat |
-| H16 | Penguncian versi pyarrow dan pandas | Belum dijadwalkan |
 | H18 | Urutan deteksi cgroup di host hybrid v1+v2 | Belum dijadwalkan; sementara notebook berhenti dengan error di host hybrid sebelum mengukur apa pun (006a) |
 | H19 | Versi cgroup dicatat di Lingkungan atau tidak | Belum dijadwalkan; sementara tidak dicatat (006a) |
+| H20 | Run val mana yang dipakai kalau satu konfigurasi tercatat lebih dari sekali | Sementara `05_val_results` berhenti (007a); diputuskan kalau kasusnya terjadi |
 | — | Lisensi model, grafik laporan | Saat menyusun laporan |
 
 ## Dokumen rancangan
@@ -81,9 +83,9 @@ Notebook terhubung hanya lewat berkas berikut, tanpa import antar-notebook. Enti
 | Vektor dokumen | `data/embeddings/<embedding_id>/doc_vectors.npy` + `doc_ids.parquet` | `.npy` float32, Parquet | `02_embedding` | `03_exact`, `04a`–`04c`, `06_final_benchmark` | 1.446.315 baris; urutan baris = urutan `doc_ids.parquet`; norma L2 = 1 |
 | Vektor query | `data/embeddings/<embedding_id>/query_vectors.npy` + `query_ids.parquet` | `.npy` float32, Parquet | `02_embedding` | `03_exact`, `04a`–`04c`, `06_final_benchmark` | 960 baris; urutan baris = urutan `query_ids.parquet`; norma L2 = 1 |
 | Tetangga exact | `data/embeddings/<embedding_id>/exact_neighbors.parquet` | Parquet | `03_exact` (split val) | `04a`–`04c` | Hanya sah untuk embedding_id yang sama; exact dijalankan sebelum ANN |
-| Run | `outputs/tuning/runs_<algorithm>.csv` (val); `outputs/metrics/runs_test.csv` (test) | CSV append-only | `03_exact`, `04a`–`04c` (val); `06_final_benchmark` (test) | `05_val_results`, `06_final_benchmark` | Satu konfigurasi sapuan = satu baris; hanya ditambah, tidak pernah ditimpa |
+| Run | `outputs/tuning/runs_<algorithm>.csv` (val); `outputs/metrics/runs_test.csv` (test) | CSV append-only | `03_exact`, `04a`–`04c` (val); `06_final_benchmark` (test) | `05_val_results`, `06_final_benchmark` (penjaga test membaca `runs_test.csv`) | Satu konfigurasi sapuan = satu baris; hanya ditambah, tidak pernah ditimpa atau dihapus; konfigurasi val unik (H20, sementara); baris test juga membawa `config_lock_hash`, `test_attempt`, `reopen_reason` (007a) |
 | Lingkungan | `outputs/tuning/environment_<env_id>.json` | JSON | `02_embedding`, `03_exact`, `04a`–`04c`, `06_final_benchmark` | `05_val_results`, `06_final_benchmark` | env_id = hash field statis + hostname; field dinamis tidak masuk hash |
-| Kunci konfigurasi | `outputs/tuning/locked_config.json` | JSON | `05_val_results` | `06_final_benchmark` | Ditulis sekali sebelum test dibuka; notebook final berhenti kalau hash tidak cocok |
+| Kunci konfigurasi | `outputs/tuning/locked_config.json` | JSON | `05_val_results` | `06_final_benchmark` | Ditulis sekali sebelum test dibuka; notebook final berhenti kalau hash tidak cocok; 1─N run test lewat `config_lock_hash`; test untuk embedding_id yang sama dibuka ulang hanya lewat izin K12 (007a) |
 
 `data/` dan `outputs/` di-gitignore; susunan foldernya dijaga dengan `.gitkeep`. Notebook di kolom Ditulis oleh dan Dibaca oleh dibangun lewat rencana 003b langkah 3–11.
 

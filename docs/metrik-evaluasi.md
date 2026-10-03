@@ -1,6 +1,6 @@
 # Metrik Evaluasi
 
-Ringkasan keputusan K7, K4, K11, dan D4 dari rancangan 002a, 003a, 004a, 005a, dan 006a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`, `docs/rancangan/005a_2026-10-02_mvp-pengukuran-cgroup.md`, `docs/rancangan/006a_2026-10-03_mvp-pemanasan-qps.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku. Dokumen ini bukan `docs/rencana-evaluasi.md` (milik red-chan).
+Ringkasan keputusan K7, K4, K11, dan D4 dari rancangan 002a, 003a, 004a, 005a, 006a, dan 007a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`, `docs/rancangan/005a_2026-10-02_mvp-pengukuran-cgroup.md`, `docs/rancangan/006a_2026-10-03_mvp-pemanasan-qps.md`, `docs/rancangan/007a_2026-10-03_mvp-penjaga-test.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku. Dokumen ini bukan `docs/rencana-evaluasi.md` (milik red-chan).
 
 ## Ringkasan
 
@@ -158,6 +158,9 @@ Setiap run menambah satu baris yang tidak pernah ditimpa. Satu konfigurasi sapua
 | jumlah query dengan hasil < 5 | Kolom diagnostik |
 | jumlah suku #8 yang dikeluarkan | Kolom diagnostik (005a): Σ_q (5 − \|I(q)\|) |
 | jumlah query tanpa suku #8 tersisa | Kolom diagnostik (005a): query dengan \|I(q)\| = 0 |
+| config_lock_hash | Hanya run test (007a): content_hash Kunci konfigurasi yang dipakai |
+| test_attempt | Hanya run test (007a): nomor percobaan ≥ 1, sama untuk semua baris satu eksekusi notebook 06 |
+| reopen_reason | Hanya run test (007a): alasan buka ulang, wajib kalau test_attempt > 1 |
 
 ## K11 · Memilih konfigurasi untuk test
 
@@ -177,9 +180,44 @@ Bergantung   H4 (cara ukur QPS) dijawab sebelum notebook search pertama
 
 Pemilihan konfigurasi hanya di split val. Notebook benchmark final — notebook terakhir — berhenti kalau hash Kunci konfigurasi atau env_id tidak cocok dengan run val, lalu membuka split test sekali untuk keempat konfigurasi terkunci dan menjalankan ulang exact (K2).
 
+Sebelum query test dibaca, penjaga test (K12, 007a) memeriksa `outputs/metrics/runs_test.csv` untuk embedding_id Kunci, apa pun Kunci-nya. Kalau sudah ada percobaan, notebook berhenti kecuali `IZIN_BUKA_ULANG` aktif dengan `ALASAN_BUKA_ULANG` tertulis; percobaan baru diberi nomor berikutnya dan baris lama tidak diubah. Laporan memakai percobaan terakhir dan menyebut jumlah percobaan. Kartu K12 007a, apa adanya:
+
+```
+K12 · Test-split guard with explicit reopen — Umum
+Tempat       Notebook 06, setelah hash Kunci cocok dan env_id cocok, sebelum
+             query test dibaca. Hanya membaca runs_test.csv dan sel konstanta;
+             tidak membaca data test
+Kunci        E = embedding_id Kunci konfigurasi; P = baris runs_test.csv dengan
+             embedding_id = E (apa pun config_lock_hash-nya)   — titik periksa 2a
+Aturan       P = ∅                              → lanjut, test_attempt = 1
+             P ≠ ∅, izin mati                   → berhenti (sebut jumlah
+                                                  percobaan dan cap waktu)
+             P ≠ ∅, izin aktif, alasan kosong   → berhenti
+             P ≠ ∅, izin aktif, alasan ada      → cetak peringatan, lanjut,
+                                                  test_attempt = max(P) + 1,
+                                                  reopen_reason = alasan
+                                                                 — titik periksa 1a
+Sel konstanta  IZIN_BUKA_ULANG (bawaan mati) dan ALASAN_BUKA_ULANG (teks);
+             Arya mengembalikan izin ke mati setelah percobaan selesai
+Run test     config_lock_hash = content_hash Kunci; test_attempt sama untuk
+             semua baris satu eksekusi; reopen_reason wajib kalau attempt > 1
+Laporan      Baris dengan test_attempt terbesar untuk E; sebut jumlah
+             percobaan dan alasannya. D4 dinilai pada percobaan terakhir
+Append-only  Baris lama tidak diubah atau dihapus
+```
+
+Konfigurasi val yang tercatat lebih dari sekali menghentikan `05_val_results` (H20, sementara). Kartu K11 007a, apa adanya:
+
+```
+K11 · Duplicate val configuration (H20) — sementara
+Aturan       Setiap konfigurasi muncul tepat sekali di run val; kalau tidak,
+             notebook 05 berhenti. Run mana yang dipakai diputuskan kalau
+             kasusnya terjadi
+```
+
 ## D4 · Tanda berhasil benchmark
 
-Kartu D4 003a, apa adanya:
+D4 dinilai pada percobaan test terakhir (007a). Kartu D4 003a, apa adanya:
 
 ```
 D4 · Benchmark success criteria — ✎ H3
@@ -191,4 +229,8 @@ D4 · Benchmark success criteria — ✎ H3
 
 ## Belum diputuskan
 
-Tidak ada untuk metrik. H4 (cara ukur QPS dan p50), H5 (#12), dan H6 (#8 di dekat nol) diputuskan di 005a; pemanasan sebelum ulangan QPS (H17) diputuskan di 006a.
+H4 (cara ukur QPS dan p50), H5 (#12), dan H6 (#8 di dekat nol) diputuskan di 005a; pemanasan sebelum ulangan QPS (H17) diputuskan di 006a.
+
+| Kode | Hal | Status |
+|---|---|---|
+| H20 | Run val mana yang dipakai kalau satu konfigurasi tercatat lebih dari sekali | Sementara `05_val_results` berhenti (007a); diputuskan kalau kasusnya terjadi |

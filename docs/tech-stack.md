@@ -1,6 +1,6 @@
 # Tech Stack
 
-Ringkasan keputusan K1, K3, K5, K9 (dependency), dan K10 dari rancangan 002a, 003a, dan 004a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku.
+Ringkasan keputusan K1, K3, K5, K9 (dependency), K10, dan K13 dari rancangan 002a, 003a, 004a, dan 007a. Kalau isi dokumen ini berbeda dengan file `a` yang disetujui (`docs/rancangan/002a_2026-10-02_mvp-dataset-library-metrik.md`, `docs/rancangan/003a_2026-10-02_mvp-parameter-format-encode.md`, `docs/rancangan/004a_2026-10-02_mvp-seed-env-id.md`, `docs/rancangan/007a_2026-10-03_mvp-penjaga-test.md`) atau `docs/keputusan-produk.md`, dokumen-dokumen itu yang berlaku.
 
 ## Ringkasan
 
@@ -13,9 +13,22 @@ Ringkasan keputusan K1, K3, K5, K9 (dependency), dan K10 dari rancangan 002a, 00
 | Pemuat dataset | `datasets` | 5.0.1 | Apache-2.0 |
 | Index dan search | `faiss-cpu` | 1.15.1 | MIT |
 | Array | numpy | belum dikunci (H13) | — |
-| Parquet | pyarrow (terpasang lewat `datasets`) | belum dikunci (H16); versinya dicatat K8 | — |
+| Parquet | pyarrow (terpasang lewat `datasets`) | dikunci `==` (K13); nilai versi dari `pip freeze` instance | — |
+| Tabel | pandas (terpasang lewat `datasets`) | dikunci `==` (K13); nilai versi dari `pip freeze` instance | — |
 
-Dependency di `requirements.txt` hanya tiga paket yang versinya ditetapkan 002a. torch dan numpy dikunci dari `pip freeze` instance Vast.ai (H13); penguncian pyarrow dan pandas belum dijadwalkan (H16). `transformers` ikut ditarik `sentence-transformers` 6.1.0 (PyTorch 2.2+ dan transformers 5.x) dan versinya dicatat di Lingkungan (K8).
+Dependency di `requirements.txt` saat ini tiga paket yang versinya ditetapkan 002a. Menurut K13 (007a), torch, numpy, pyarrow, dan pandas juga dikunci `==` dari `pip freeze` instance Vast.ai yang sama, supaya Parquet dan hash isi di notebook 01 dibaca dan ditulis dengan versi yang sama di setiap sesi; nilai versinya ditulis setelah instance pertama ada (H9, H13). Kartu K13 007a, apa adanya:
+
+```
+K13 · Dependency pinning (H16) — Umum
+requirements.txt  sentence-transformers==6.1.0, faiss-cpu==1.15.1,
+                  datasets==5.0.1 (002a) + torch, numpy (H13) + pyarrow,
+                  pandas (H16), semuanya == dari pip freeze instance Vast.ai
+                  yang sama; Python dari python --version instance itu (H9)
+Alasan       Parquet dan hash isi di notebook 01 dibaca dan ditulis dengan
+             versi yang sama di setiap sesi
+```
+
+ `transformers` ikut ditarik `sentence-transformers` 6.1.0 (PyTorch 2.2+ dan transformers 5.x) dan versinya dicatat di Lingkungan (K8).
 
 ## K1 · Model embedding
 
@@ -146,4 +159,3 @@ Revision dataset dicatat di Set embedding dan Lingkungan. Rincian data dan forma
 |---|---|---|
 | H9 | Versi Python pasti (harus 3.10–3.13) | Saat instance Vast.ai pertama dibuat |
 | H13 | Versi torch dan numpy, dikunci dari `pip freeze` instance Vast.ai | Saat instance Vast.ai pertama dibuat |
-| H16 | Penguncian versi pyarrow dan pandas | Belum dijadwalkan |

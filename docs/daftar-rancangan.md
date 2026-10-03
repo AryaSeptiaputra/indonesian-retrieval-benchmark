@@ -8,3 +8,4 @@
 | 004 | Seed dan env_id | MVP | [disetujui 2026-10-02](rancangan/004a_2026-10-02_mvp-seed-env-id.md) | [disetujui 2026-10-02](rancangan/004b_2026-10-02_mvp-seed-env-id.md) | 2 dari 2 | selesai |
 | 005 | Pengukuran dan cgroup | MVP | [disetujui 2026-10-02](rancangan/005a_2026-10-02_mvp-pengukuran-cgroup.md) | [disetujui 2026-10-02](rancangan/005b_2026-10-02_mvp-pengukuran-cgroup.md) | 3 dari 3 | selesai |
 | 006 | Pemanasan QPS | MVP | [disetujui 2026-10-03](rancangan/006a_2026-10-03_mvp-pemanasan-qps.md) | [disetujui 2026-10-03](rancangan/006b_2026-10-03_mvp-pemanasan-qps.md) | 2 dari 2 | selesai |
+| 007 | Penjaga test | MVP | [disetujui 2026-10-03](rancangan/007a_2026-10-03_mvp-penjaga-test.md) | [disetujui 2026-10-03](rancangan/007b_2026-10-03_mvp-penjaga-test.md) | 3 dari 3 | selesai |

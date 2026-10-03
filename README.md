@@ -44,10 +44,20 @@ Exact dijalankan sebelum HNSW, IVF, dan LSH karena tetangganya menjadi pembandin
 
 Notebook saling terhubung hanya lewat berkas. Rinciannya ada di bagian "Kontrak berkas" di `CLAUDE.md`.
 
+## Membuka ulang split test
+
+`06_final_benchmark` berhenti sebelum membaca query test kalau `outputs/metrics/runs_test.csv` sudah berisi percobaan untuk embedding_id yang sama (K12). Untuk membuka ulang, misalnya setelah kesalahan penilai diperbaiki:
+
+1. Di sel konstanta `06_final_benchmark`, isi `IZIN_BUKA_ULANG = True` dan `ALASAN_BUKA_ULANG` dengan alasan tertulis.
+2. Jalankan notebook; peringatan dicetak dan setiap baris run test baru membawa `test_attempt` berikutnya dan alasannya.
+3. Kembalikan `IZIN_BUKA_ULANG = False` dan `ALASAN_BUKA_ULANG = ""` setelah percobaan selesai.
+
+Baris test lama tidak dihapus atau diubah; laporan memakai percobaan terakhir dan menyebut jumlah percobaan.
+
 ## Prasyarat
 
 - Python 3.10–3.13 (versi pasti belum diputuskan, H9).
-- `pip install -r requirements.txt`: sentence-transformers, faiss-cpu, datasets. Versi torch dan numpy dikunci nanti dari `pip freeze` instance Vast.ai (H13); pyarrow dan pandas ikut terpasang lewat datasets, penguncian versinya belum dijadwalkan (H16).
+- `pip install -r requirements.txt`: sentence-transformers, faiss-cpu, datasets. torch, numpy, pyarrow, dan pandas dikunci `==` dari `pip freeze` instance Vast.ai setelah instance pertama ada (K13, H13).
 - Instance Vast.ai sesuai `docs/lingkungan-eksekusi.md`.
 - Dataset MIRACL id diletakkan Arya di `data/raw/` (lihat `docs/dataset.md`); agent tidak mengunduh data.
 
