@@ -93,24 +93,43 @@ Fungsi yang dipakai beberapa notebook disalin, tidak di-import, dan setiap salin
 
 | Fungsi | Ada di |
 |---|---|
-| `load_parquet` | 01, 02, 03 |
-| `load_json` | 01, 02, 03 |
-| `parse_cpu_max` | 02, 03 |
-| `parse_cfs_quota` | 02, 03 |
-| `fetch_cgroup_cpu_quota` | 02, 03 |
-| `fetch_cpu_quota` | 02, 03 |
-| `compute_thread_count` | 02, 03 |
-| `set_num_threads` | 02, 03 |
-| `parse_nvidia_smi` | 02, 03 |
-| `fetch_gpu_info` | 02, 03 |
-| `parse_cpuinfo` | 02, 03 |
-| `parse_memory_max` | 02, 03 |
-| `parse_memory_limit` | 02, 03 |
-| `fetch_memory_quota` | 02, 03 |
-| `fetch_library_versions` | 02, 03 |
-| `collect_environment` | 02, 03 |
-| `compute_env_id` | 02, 03 |
-| `save_environment` | 02, 03 |
+| `load_parquet` | 01, 02, 03, 04a, 04b, 04c |
+| `load_json` | 01, 02, 03, 04a, 04b, 04c |
+| `parse_cpu_max` | 02, 03, 04a, 04b, 04c |
+| `parse_cfs_quota` | 02, 03, 04a, 04b, 04c |
+| `fetch_cgroup_cpu_quota` | 02, 03, 04a, 04b, 04c |
+| `fetch_cpu_quota` | 02, 03, 04a, 04b, 04c |
+| `compute_thread_count` | 02, 03, 04a, 04b, 04c |
+| `set_num_threads` | 02, 03, 04a, 04b, 04c |
+| `parse_nvidia_smi` | 02, 03, 04a, 04b, 04c |
+| `fetch_gpu_info` | 02, 03, 04a, 04b, 04c |
+| `parse_cpuinfo` | 02, 03, 04a, 04b, 04c |
+| `parse_memory_max` | 02, 03, 04a, 04b, 04c |
+| `parse_memory_limit` | 02, 03, 04a, 04b, 04c |
+| `fetch_memory_quota` | 02, 03, 04a, 04b, 04c |
+| `fetch_library_versions` | 02, 03, 04a, 04b, 04c |
+| `collect_environment` | 02, 03, 04a, 04b, 04c |
+| `compute_env_id` | 02, 03, 04a, 04b, 04c |
+| `save_environment` | 02, 03, 04a, 04b, 04c |
+| `fetch_embedding_dir` | 03, 04a, 04b, 04c |
+| `load_vectors` | 03, 04a, 04b, 04c |
+| `select_split_rows` | 03, 04a, 04b, 04c |
+| `build_relevance` | 03, 04a, 04b, 04c |
+| `search_index` | 03, 04a, 04b, 04c |
+| `to_doc_ids` | 03, 04a, 04b, 04c |
+| `to_distances` | 03, 04a, 04b, 04c |
+| `to_result_distances` | 03, 04a, 04b, 04c |
+| `_score_query` | 03, 04a, 04b, 04c |
+| `compute_quality_metrics` | 03, 04a, 04b, 04c |
+| `compute_fidelity_metrics` | 03, 04a, 04b, 04c |
+| `count_short_results` | 03, 04a, 04b, 04c |
+| `measure_latency_p50` | 03, 04a, 04b, 04c |
+| `measure_qps` | 03, 04a, 04b, 04c |
+| `measure_index_size` | 03, 04a, 04b, 04c |
+| `build_run` | 03, 04a, 04b, 04c |
+| `append_run` | 03, 04a, 04b, 04c |
+| `load_exact_neighbors` | 04a, 04b, 04c |
+| `evaluate_index` | 04a, 04b |
 
 ## Agent dan skill di repo ini
 
